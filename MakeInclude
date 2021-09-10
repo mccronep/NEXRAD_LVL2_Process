@@ -1,0 +1,204 @@
+#
+#
+# "Distribution authorized to U.S. Government Agencies and their contractors 
+# (Software Documentation - Releaseable only in accordance with software 
+# license, December 2010). Other requests for this document shall be referred 
+# to the Naval Research Laboratory, Code 7500."
+#
+# CONFIGURATION IDENTIFICATION $Date: 2012-04-12 00:31:10 +0000 (Thu, 12 Apr 2012) $
+# CONFIGURATION IDENTIFICATION $Rev: 16597 $
+# CONFIGURATION IDENTIFICATION $Author: geiszler $
+# CONFIGURATION IDENTIFICATION $URL: https://inversion.nrlmry.navy.mil/svn/coampsos/tags/coampsos_2-3p2/src/MakeInclude.einstein_64_static $
+# CONFIGURATION IDENTIFICATION $Id: MakeInclude.einstein_64_static 16597 2012-04-12 00:31:10Z geiszler $
+#
+
+SHELL=/bin/bash
+
+BASEPATH=/scr/SITE/jcm/models/COAMPS-OS/users_dir/herkamp/BOTH
+BASEPATH=/users/geiszler/SUBVERSION/trunk/tmp
+
+EXE_DIR=${BASEPATH}/bin2
+SRC_DIR=${BASEPATH}/src2
+SERVLET_DIR=${BASEPATH}/servlets2
+JWS_GUI_DIR=${BASEPATH}/html/java2
+
+COTS_DIR=${BASEPATH}/COTS
+
+
+ANT=ant
+export JAVA_HOME=/usr/lib/jvm/java-1.6.0-sun-1.6.0.45.x86_64/jre
+SHAPEDIR=${COTS_DIR}/SHAPELIB
+SHAPELIB=$(SHAPEDIR)/lib/libshp.a
+SHAPEINC=-I$(SHAPEDIR)/include
+
+MAPSERVERDIR=${COTS_DIR}/MAPSERVER
+MAPSERVERINC=${MAPSERVERDIR}/include
+GEOSLIBS=-L${MAPSERVERDIR}/lib -lgeos_c -lgeos ${MAPSERVERDIR}/lib/isccw.a
+
+LIBDMUT=-L${SRC_DIR}/dm/Utils/lib -lDMUtils
+LIBGRIB2C=${SRC_DIR}/dm/GRIBEncoder/lib/libgrib2c.a
+LIBJASPER=${SRC_DIR}/dm/GRIBEncoder/jasper-1.900.1/lib/libjasper.a
+
+LIBGRIB2C_2=${SRC_DIR}/dm/GRIBEncoder/g2clib-1.0.2/libgrib2c.a
+
+mycomp=intel
+
+ifeq ($(mycomp), gcc)
+  Base_CC=/usr/bin/gcc
+  Base_CPP=/usr/bin/cpp
+  Base_FC=/usr/bin/gfortran
+ 
+  NETCDFLIB=-L/site/applic/netcdf/4.1.3-gnu/lib -lnetcdf -L/site/applic/hdf5/1.8.9-gnu/lib -lhdf5_hl -lhdf5 -lz
+  NETCDFINC=-I/site/applic/netcdf/4.1.3-gnu/include
+
+  LIBGFORT=-L/usr/lib/gcc/x86_64-redhat-linux/4.4.4/ -lgfortran
+  LIBGCCFORT=-L/usr/lib/gcc/x86_64-redhat-linux/4.4.4 -lgcc
+  comp_ldflag=-lm
+  comp_fflag=-g -w -O2
+  comp_cflag=-B -w
+
+endif
+ifeq ($(mycomp), intel)
+
+  Base_CC=icc
+  Base_FC=ifort
+  Base_CPP=icpc
+
+  BYTESWAP_FLAG=-convert big_endian
+  STATIC_FLAG=-static
+
+  NETCDFLIB=-L/site/netcdf/lib -lnetcdf -L/site/hdf5/lib -lhdf5_hl -lhdf5 -lz
+  NETCDFINC=-I/site/netcdf/include
+  NETCDFLIB=-L/h/library/COTS/NETCDF-4.2.1.intel/lib -lnetcdf -L/site/hdf5/lib -lhdf5_hl -lhdf5 -lz
+  NETCDFINC=-I/h/library/COTS/NETCDF-4.2.1.intel/include
+
+  LIBGFORT=/site/intel/composer_xe_2011_sp1/lib/intel64/libifcore.a
+  
+  comp_fflag=-g2 -warn all  -debug all  -fp-stack-check -assume byterecl 
+  comp_fflag_nowarn=-g2 -debug all  -fp-stack-check -assume byterecl
+  comp_fflag_nowarn=-fast -fp-stack-check -assume byterecl
+
+  comp_clib=-L/lib64 -lbz2
+  comp_cflag=-I/usr/include -pc=64 -B -w 
+  comp_ldflag=-lifcore
+endif
+
+#################################################################
+#
+#  MetQC specific flags.
+#
+#################################################################
+MQC_CC = $(Base_CC)
+MQC_CFLAGS = ${comp_cflag}
+MQC_LDFLAGS = ${comp_ldflag} -static
+
+#################################################################
+#
+#  DM specific flags.
+#
+#################################################################
+
+DM_CC=$(Base_CC)
+DM_FC=$(Base_FC)
+DM_CPP=$(Base_CPP)
+DM_LDFLAGS=${comp_ldflag}
+DM_CLIBS=
+DM_LD_STATIC=-static -lifcore -limf
+
+DM_FFLAGS = ${comp_fflag}
+DM_CFLAGS = ${comp_cflag} -I${MAPSERVERINC}
+
+DM_CUTOUT_FC = $(Base_FC)
+DM_CUTOUT_FFLAGS= -{comp_fflag}
+
+#################################################################
+#
+#  GUI specific flags.
+#
+#################################################################
+GUI_FC = $(Base_FC)
+GUI_FFLAGS = ${comp_fflag_nowarn} -DG77 -static
+GUI_LDFLAGS = ${comp_fflag_nowarn} -DG77 -static
+
+
+#################################################################
+#
+#  MAP specific flags.
+#
+#################################################################
+MAP_FC = $(Base_FC)
+MAP_CPP = $(Base_CPP)
+MAP_CC = $(Base_CC)
+#MAP_FFLAGS = -x f77-cpp-input
+#MAP_FFLAGS =  $(LIBGFORT)
+MAP_FFLAGS = -assume byterecl -fast
+MAP_LDFLAGS = -assume byterecl -fast -static
+
+#################################################################
+#
+#  MD specific flags.
+#
+#################################################################
+
+MD_DIAG_CC=$(Base_CC)
+MD_DIAG_FC=$(Base_FC)
+MD_DIAG_FFLAGS=${comp_fflag_nowarn} -convert big_endian -static
+MD_DIAG_LDFLAGS=${comp_ldflag_nowarn} -convert big_endian -static
+
+MD_RD_FC=$(Base_FC)
+MD_RD_FFLAGS= ${comp_fflag_nowarn} -convert big_endian -static
+MD_RD_LDFLAGS= ${comp_ldflag_nowarn} -convert big_endian -static
+
+MD_FC=$(Base_FC)
+MD_FFLAGS= ${comp_fflag_nowarn}
+MD_LDFLAGS= ${comp_ldflag_nowarn}
+
+#################################################################
+#
+#  TOOLS specific flags.
+#
+#################################################################
+TOOLS_FC = $(Base_FC)
+TOOLS_FFLAGS = ${comp_fflag_nowarn} -convert big_endian -static
+TOOLS_LDFLAGS = ${comp_fflag_nowarn} -static
+TOOLS_FFLAGS_INT2FLOAT = ${comp_fflag_nowarn} -static
+TOOLS_FFLAGS_LIS2FF = ${comp_fflag_nowarn} -static
+
+#################################################################
+#
+#  ADAS specific flags.
+#
+#################################################################
+ADAS_FC = $(Base_FC)
+ADAS_CC = $(Base_CC)
+ADAS_CFLAGS = ${comp_cflag}
+ADAS_FFLAGS = ${comp_fflag_nowarn}
+#ADAS_FFLAGS = -O2 -Mvect -Munroll  -DPGF -DLINUX -byteswapio -Mextend -pc=64
+ADAS_LDFLAGS = ${comp_ldflag}
+
+
+#################################################################
+#
+#  NCOM Interp specific flags.
+#
+#################################################################
+NCOMINTERP_FC = $(Base_FC)
+NCOMINTERP_FFLAGS = ${comp_fflag_nowarn} -convert big_endian -static
+NCOMINTERP_LDFLAGS = ${comp_ldflag_nowarn} -convert big_endian -static
+
+
+
+################################################################
+#
+#  RADAR Interp specific flags.
+#
+#################################################################
+RADAR_FC = $(Base_FC)
+RADAR_FFLAGS = ${comp_fflag}
+RADAR_LDFLAGS = ${comp_ldflag} -static
+#RADAR_LDFLAGS = ${comp_ldflag} -static -assume byterecl
+RADAR_CC = $(Base_CC)
+
+RADAR_CFLAGS=${comp_cflag}
+RADAR_CLIBS=${comp_clib}
+#
